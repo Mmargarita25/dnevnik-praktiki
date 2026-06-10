@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Дневник практики</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f7fb;
+            padding-bottom: 70px;
+        }
+
+        /* Табы */
+        .tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 16px 20px;
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.08);
+            border-top: 1px solid #e0e0e0;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 8px;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+        }
+
+        .tab-icon {
+            font-size: 24px;
+        }
+
+        /* Контент */
+        .tab-content {
+            display: none;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Карточки */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        /* Формы */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #555;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            margin-top: 8px;
+        }
+
+        /* Записи */
+        .log-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .log-hours {
+            color: #667eea;
+        }
+
+        .log-task {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* Контакты */
+        .contact-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .contact-info h4 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .contact-info p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Отчет */
+        .report-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            margin-top: 16px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        .file-input {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .file-input input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-label {
+            background: #f0f0f0;
+            padding: 12px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Хедер */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn {
+            background: none;
+            color: #e53e3e;
+            width: auto;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* Экспорт кнопки */
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .export-buttons button {
+            flex: 1;
+        }
+        
+        .btn-pdf {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        
+        .btn-word {
+            background: linear-gradient(135deg, #28a745, #218838);
+        }
+        
+        .file-info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-top: 8px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="tab-content active" id="diary-tab">
+        <div class="header">
+            <h2 style="font-size: 24px;">📝 Дневник</h2>
+            <button class="logout-btn" id="logoutBtn">Выйти</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Отработано часов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="remainingHours">0</div>
+                <div class="stat-label">Осталось часов</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🎯 Задание на практику</div>
+            <textarea id="practiceTask" rows="3" placeholder="Опишите основное задание на практику..."></textarea>
+            <div class="form-group" style="margin-top: 12px;">
+                <input type="number" id="targetHours" placeholder="Всего часов по плану">
+            </div>
+            <button id="saveGoalBtn">Сохранить цель</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">➕ Новая запись</div>
+            <div class="form-group">
+                <input type="date" id="logDate">
+            </div>
+            <div class="form-group">
+                <label>Время работы</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="time" id="timeStart" style="flex:1" placeholder="Начало">
+                    <input type="time" id="timeEnd" style="flex:1" placeholder="Конец">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Часы за день: <strong id="dailyHours">0</strong></label>
+            </div>
+            <div class="form-group">
+                <textarea id="logTask" rows="3" placeholder="Что сделано сегодня?"></textarea>
+            </div>
+            <button id="addLogBtn">Добавить запись</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📋 История</div>
+            <div id="logsList"></div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="contacts-tab">
+        <div class="header">
+            <h2 style="font-size: 24px;">👥 Контакты</h2>
+        </div>
+
+        <div class="card">
+            <div class="card-title">➕ Добавить контакт</div>
+            <div class="form-group">
+                <input type="text" id="contactName" placeholder="ФИО">
+            </div>
+            <div class="form-group">
+                <input type="text" id="contactRole" placeholder="Должность">
+            </div>
+            <div class="form-group">
+                <input type="tel" id="contactPhone" placeholder="Телефон">
+            </div>
+            <button id="addContactBtn">Добавить</button>
+        </div>
+
+        <div id="contactsList"></div>
+    </div>
+
+    <div class="tab-content" id="report-tab">
+        <div class="header">
+            <h2 style="font-size: 24px;">🤖 Отчет</h2>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📄 Загрузить пример отчета</div>
+            <div class="file-input">
+                <div class="file-label" id="fileLabel">📁 Нажмите или перетащите файл (.docx, .txt)</div>
+                <input type="file" id="exampleFile" accept=".txt,.docx">
+            </div>
+            <div id="fileInfo" class="file-info" style="display: none;"></div>
+            <textarea id="exampleText" rows="6" placeholder="Или вставьте пример отчета сюда..."></textarea>
+            <button id="generateReportBtn" style="margin-top: 16px;">✨ Сгенерировать отчет</button>
+        </div>
+
+        <div id="reportResult" style="display: none;">
+            <div class="card">
+                <div class="card-title">📄 Сгенерированный отчет</div>
+                <div id="reportContent" class="report-content"></div>
+                <div class="export-buttons">
+                    <button id="downloadPdfBtn" class="btn-pdf">📄 Скачать PDF</button>
+                    <button id="downloadWordBtn" class="btn-word">📝 Скачать Word</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="settings-tab">
+        <div class="header">
+            <h2 style="font-size: 24px;">⚙️ Настройки</h2>
+        </div>
+
+        <div class="card">
+            <div class="card-title">👤 Профиль</div>
+            <div class="form-group">
+                <label>Ваше ФИО</label>
+                <input type="text" id="userFullName" placeholder="Иванов Иван Иванович">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔐 Gemini API Ключ</div>
+            <div class="form-group">
+                <input type="password" id="geminiKey" placeholder="Введите API ключ Gemini">
+            </div>
+            <small style="color: #666;">Ключ хранится только в вашем браузере</small>
+            <button id="saveSettingsBtn" style="margin-top: 16px;">Сохранить настройки</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="diary">
+            <span class="tab-icon">📝</span>
+            <span>Дневник</span>
+        </button>
+        <button class="tab-btn" data-tab="contacts">
+            <span class="tab-icon">👥</span>
+            <span>Контакты</span>
+        </button>
+        <button class="tab-btn" data-tab="report">
+            <span class="tab-icon">🤖</span>
+            <span>Отчет</span>
+        </button>
+        <button class="tab-btn" data-tab="settings">
+            <span class="tab-icon">⚙️</span>
+            <span>Настройки</span>
+        </button>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

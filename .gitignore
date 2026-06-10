@@ -1,0 +1,5 @@
+firebase-config.js
+.env
+.DS_Store
+node_modules/
+*.log
